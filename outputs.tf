@@ -12,3 +12,8 @@ output "proxmox_node_driver_id" {
   description = "Rancher node driver ID when proxmox node driver deployment is enabled."
   value       = var.proxmox_node_driver_enabled ? rancher2_node_driver.proxmox[0].id : null
 }
+
+output "proxmox_machine_config_names" {
+  description = "Names of Proxmox machine config objects created by bootstrap."
+  value       = sort(keys(kubectl_manifest.proxmox_machine_config))
+}

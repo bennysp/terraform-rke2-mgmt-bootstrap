@@ -23,6 +23,9 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 - Optional Rancher node-driver deployment is supported via `rancher2_node_driver`.
 - Set `proxmox_node_driver_enabled = true` to deploy/update the Proxmox custom node driver from management bootstrap.
 - Rancher API URL/token are read from Vault path `vault_rancher_secret_path`.
-- Downstream provisioning can then reference Proxmox machine configs by `kind`/`name` (see downstream module inputs).
+- Optional Proxmox machine-config CR creation is supported via `kubectl_manifest`:
+	- set `proxmox_machine_configs_enabled = true`
+	- define `proxmox_machine_configs` map keyed by config object name (for example cp/worker)
+- Downstream provisioning can then reference these machine configs by `kind`/`name` with no manual Rancher UI object creation.
 
 Rancher Management bootstrap module

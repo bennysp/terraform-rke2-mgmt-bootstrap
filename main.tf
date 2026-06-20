@@ -91,6 +91,22 @@ resource "rancher2_node_driver" "proxmox" {
   whitelist_domains = var.proxmox_node_driver_whitelist_domains
 }
 
+resource "kubectl_manifest" "proxmox_machine_config" {
+  for_each = var.proxmox_machine_configs_enabled ? var.proxmox_machine_configs : {}
+
+  yaml_body = yamlencode({
+    apiVersion = try(each.value.api_version, "rke-machine-config.cattle.io/v1")
+    kind       = try(each.value.kind, "ProxmoxveConfig")
+    metadata = {
+      name      = each.key
+      namespace = try(each.value.namespace, "fleet-default")
+    }
+    spec = each.value.spec
+  })
+
+  depends_on = [rancher2_node_driver.proxmox]
+}
+
 resource "kubernetes_secret" "fleet_git_auth" {
   metadata {
     name      = var.fleet_git_secret_name

@@ -111,6 +111,23 @@ variable "proxmox_node_driver_whitelist_domains" {
   ]
 }
 
+variable "proxmox_machine_configs_enabled" {
+  description = "If true, creates Proxmox machine config CRs in Rancher for downstream cluster pools."
+  type        = bool
+  default     = false
+}
+
+variable "proxmox_machine_configs" {
+  description = "Map of Proxmox machine config objects keyed by metadata.name. Values are rendered as CR manifests."
+  type = map(object({
+    kind        = optional(string, "ProxmoxveConfig")
+    api_version = optional(string, "rke-machine-config.cattle.io/v1")
+    namespace   = optional(string, "fleet-default")
+    spec        = map(any)
+  }))
+  default = {}
+}
+
 variable "fleet_namespace" {
   description = "Namespace where Fleet GitRepo resources and git secret are created."
   type        = string
