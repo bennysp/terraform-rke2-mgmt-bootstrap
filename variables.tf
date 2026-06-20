@@ -150,7 +150,7 @@ variable "proxmox_node_driver_name" {
 variable "proxmox_node_driver_url" {
   description = "Download URL for the Proxmox node driver binary."
   type        = string
-  default     = "https://github.com/Stellatarum/docker-machine-driver-pve/releases/download/v1.1.0/docker-machine-driver-pve"
+  default     = "https://github.com/Stellatarum/docker-machine-driver-pve/releases/download/v1.2.0-rc2/docker-machine-driver-pve"
 }
 
 variable "proxmox_node_driver_checksum" {
