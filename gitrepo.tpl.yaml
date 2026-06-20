@@ -1,0 +1,24 @@
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+  annotations:
+    field.cattle.io/description: ${description}
+spec:
+  branch: ${branch}
+  repo: ${repo_url}
+  clientSecretName: ${secret}
+  insecureSkipTLSVerify: ${insecure_skip_tls_verify}
+  paths:
+  - ${path}
+  targets:
+%{ for t in targets ~}
+  - clusterSelector:
+%{ for k, v in t.cluster_selector ~}
+      ${k}: ${v}
+%{ endfor ~}
+%{ if length(t.cluster_selector) == 0 ~}
+      {}
+%{ endif ~}
+%{ endfor ~}
