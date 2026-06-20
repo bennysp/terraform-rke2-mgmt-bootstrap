@@ -151,10 +151,65 @@ resource "kubectl_manifest" "proxmox_node_driver" {
   })
 }
 
-resource "time_sleep" "wait_for_proxmox_driver" {
+resource "terraform_data" "wait_for_proxmox_driver_ready" {
   count = var.proxmox_node_driver_enabled && var.proxmox_machine_configs_enabled ? 1 : 0
 
-  create_duration = var.proxmox_machine_config_wait_duration
+  input = {
+    node_driver_name = var.proxmox_node_driver_name
+    kubeconfig_hash  = sha256(local.kubeconfig_yaml)
+    timeout_seconds  = var.proxmox_node_driver_ready_timeout_seconds
+    poll_seconds     = var.proxmox_node_driver_ready_poll_interval_seconds
+  }
+
+  triggers_replace = [
+    var.proxmox_node_driver_name,
+    var.proxmox_node_driver_url,
+    var.proxmox_node_driver_deploy_mode,
+    sha256(local.kubeconfig_yaml),
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -euo pipefail
+
+      KCFG_FILE=$(mktemp /tmp/proxmox-driver-kubeconfig.XXXXXX.yaml)
+      cat > "$KCFG_FILE" <<'KUBECONFIG_EOF'
+${local.kubeconfig_yaml}
+KUBECONFIG_EOF
+
+      DRIVER_NAME='${var.proxmox_node_driver_name}'
+      TIMEOUT_SECONDS='${var.proxmox_node_driver_ready_timeout_seconds}'
+      POLL_SECONDS='${var.proxmox_node_driver_ready_poll_interval_seconds}'
+      DEADLINE=$((SECONDS + TIMEOUT_SECONDS))
+
+      while (( SECONDS < DEADLINE )); do
+        CRD_READY=false
+        DRIVER_DOWNLOADED=false
+        DRIVER_INSTALLED=false
+
+        if kubectl --kubeconfig "$KCFG_FILE" get crd proxmoxveconfigs.rke-machine-config.cattle.io >/dev/null 2>&1; then
+          CRD_READY=true
+        fi
+
+        DOWNLOADED_STATUS=$(kubectl --kubeconfig "$KCFG_FILE" get nodedrivers.management.cattle.io "$DRIVER_NAME" -o jsonpath='{.status.conditions[?(@.type=="Downloaded")].status}' 2>/dev/null || true)
+        INSTALLED_STATUS=$(kubectl --kubeconfig "$KCFG_FILE" get nodedrivers.management.cattle.io "$DRIVER_NAME" -o jsonpath='{.status.conditions[?(@.type=="Installed")].status}' 2>/dev/null || true)
+
+        [[ "$DOWNLOADED_STATUS" == "True" ]] && DRIVER_DOWNLOADED=true
+        [[ "$INSTALLED_STATUS" == "True" ]] && DRIVER_INSTALLED=true
+
+        if [[ "$CRD_READY" == "true" && "$DRIVER_DOWNLOADED" == "true" && "$DRIVER_INSTALLED" == "true" ]]; then
+          echo "Proxmox NodeDriver is ready and CRD is registered."
+          exit 0
+        fi
+
+        sleep "$POLL_SECONDS"
+      done
+
+      echo "Timed out waiting for Proxmox NodeDriver readiness."
+      kubectl --kubeconfig "$KCFG_FILE" get nodedrivers.management.cattle.io "$DRIVER_NAME" -o yaml || true
+      exit 1
+    EOT
+  }
 
   depends_on = [
     rancher2_node_driver.proxmox,
@@ -178,7 +233,7 @@ resource "kubectl_manifest" "proxmox_machine_config" {
   depends_on = [
     rancher2_node_driver.proxmox,
     kubectl_manifest.proxmox_node_driver,
-    time_sleep.wait_for_proxmox_driver,
+    terraform_data.wait_for_proxmox_driver_ready,
   ]
 }
 

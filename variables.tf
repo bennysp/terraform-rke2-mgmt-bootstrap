@@ -125,6 +125,8 @@ variable "proxmox_node_driver_whitelist_domains" {
     "githubusercontent.com",
     "objects.githubusercontent.com",
     "raw.githubusercontent.com",
+    "domain.thedaily.tv",
+    "proxmox.domain.thedaily.tv",
   ]
 }
 
@@ -138,6 +140,18 @@ variable "proxmox_machine_config_wait_duration" {
   description = "Wait duration after node driver creation before applying Proxmox machine config CRs."
   type        = string
   default     = "45s"
+}
+
+variable "proxmox_node_driver_ready_timeout_seconds" {
+  description = "Maximum seconds to wait for Proxmox node driver to be installed and CRDs to be registered."
+  type        = number
+  default     = 900
+}
+
+variable "proxmox_node_driver_ready_poll_interval_seconds" {
+  description = "Polling interval in seconds while waiting for Proxmox node driver readiness."
+  type        = number
+  default     = 10
 }
 
 variable "proxmox_machine_configs" {

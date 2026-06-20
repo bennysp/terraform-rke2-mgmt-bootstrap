@@ -18,9 +18,5 @@ terraform {
       source  = "nexus.ta.domain.thedaily.tv/gavinbunney/kubectl"
       version = "~> 1.14"
     }
-    time = {
-      source  = "nexus.ta.domain.thedaily.tv/hashicorp/time"
-      version = "~> 0.12"
-    }
   }
 }
