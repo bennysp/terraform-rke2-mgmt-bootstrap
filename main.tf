@@ -27,10 +27,6 @@ data "vault_generic_secret" "rancher_local" {
   path = var.vault_rancher_api_secret_path
 }
 
-data "rancher2_cluster_v2" "local" {
-  name = "local"
-}
-
 locals {
   kubeconfig_raw = try(tostring(data.vault_kv_secret_v2.kubeconfig.data[var.vault_kubeconfig_secret_key]), "")
   kubeconfig_yaml = trimspace(local.kubeconfig_raw) != "" ? (
@@ -132,7 +128,7 @@ provider "rancher2" {
 resource "rancher2_catalog_v2" "proxmox_extension_repo" {
   count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "extension" ? 1 : 0
 
-  cluster_id = data.rancher2_cluster_v2.local.id
+  cluster_id = "local"
   name       = var.proxmox_extension_repo_name
   url        = var.proxmox_extension_repo_url
 
@@ -145,7 +141,7 @@ resource "rancher2_catalog_v2" "proxmox_extension_repo" {
 resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "extension" ? 1 : 0
 
-  cluster_id    = data.rancher2_cluster_v2.local.id
+  cluster_id    = "local"
   name          = var.proxmox_extension_chart_name
   namespace     = var.proxmox_extension_namespace
   repo_name     = var.proxmox_extension_repo_name
