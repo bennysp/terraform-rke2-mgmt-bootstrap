@@ -76,6 +76,17 @@ variable "proxmox_node_driver_enabled" {
   default     = false
 }
 
+variable "proxmox_node_driver_deploy_mode" {
+  description = "Deployment mode for Proxmox node driver. Use kubectl (native CRD apply) first, rancher2 as fallback."
+  type        = string
+  default     = "kubectl"
+
+  validation {
+    condition     = contains(["kubectl", "rancher2"], lower(trimspace(var.proxmox_node_driver_deploy_mode)))
+    error_message = "proxmox_node_driver_deploy_mode must be one of: kubectl, rancher2."
+  }
+}
+
 variable "proxmox_node_driver_name" {
   description = "Rancher node driver display name."
   type        = string

@@ -77,6 +77,28 @@ locals {
   enabled_bundles = {
     for name, cfg in var.bootstrap_bundles : name => cfg if try(cfg.enabled, true)
   }
+
+  proxmox_node_driver_mode = lower(trimspace(var.proxmox_node_driver_deploy_mode))
+  proxmox_node_driver_spec = merge(
+    {
+      active      = true
+      builtin     = false
+      displayName = var.proxmox_node_driver_name
+      url         = var.proxmox_node_driver_url
+    },
+    trimspace(var.proxmox_node_driver_checksum) != "" ? {
+      checksum = var.proxmox_node_driver_checksum
+    } : {},
+    trimspace(var.proxmox_node_driver_description) != "" ? {
+      description = var.proxmox_node_driver_description
+    } : {},
+    trimspace(var.proxmox_node_driver_ui_url) != "" ? {
+      uiUrl = var.proxmox_node_driver_ui_url
+    } : {},
+    length(var.proxmox_node_driver_whitelist_domains) > 0 ? {
+      whitelistDomains = var.proxmox_node_driver_whitelist_domains
+    } : {}
+  )
 }
 
 provider "kubernetes" {
@@ -104,7 +126,7 @@ provider "rancher2" {
 }
 
 resource "rancher2_node_driver" "proxmox" {
-  count = var.proxmox_node_driver_enabled ? 1 : 0
+  count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "rancher2" ? 1 : 0
 
   active            = true
   builtin           = false
@@ -114,6 +136,19 @@ resource "rancher2_node_driver" "proxmox" {
   description       = var.proxmox_node_driver_description
   ui_url            = var.proxmox_node_driver_ui_url
   whitelist_domains = var.proxmox_node_driver_whitelist_domains
+}
+
+resource "kubectl_manifest" "proxmox_node_driver" {
+  count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "kubectl" ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "management.cattle.io/v3"
+    kind       = "NodeDriver"
+    metadata = {
+      name = var.proxmox_node_driver_name
+    }
+    spec = local.proxmox_node_driver_spec
+  })
 }
 
 resource "kubectl_manifest" "proxmox_machine_config" {
@@ -129,7 +164,10 @@ resource "kubectl_manifest" "proxmox_machine_config" {
     spec = each.value.spec
   })
 
-  depends_on = [rancher2_node_driver.proxmox]
+  depends_on = [
+    rancher2_node_driver.proxmox,
+    kubectl_manifest.proxmox_node_driver,
+  ]
 }
 
 resource "kubernetes_secret" "fleet_git_auth" {
