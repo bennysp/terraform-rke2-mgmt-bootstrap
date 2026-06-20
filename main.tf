@@ -151,6 +151,17 @@ resource "kubectl_manifest" "proxmox_node_driver" {
   })
 }
 
+resource "time_sleep" "wait_for_proxmox_driver" {
+  count = var.proxmox_node_driver_enabled && var.proxmox_machine_configs_enabled ? 1 : 0
+
+  create_duration = var.proxmox_machine_config_wait_duration
+
+  depends_on = [
+    rancher2_node_driver.proxmox,
+    kubectl_manifest.proxmox_node_driver,
+  ]
+}
+
 resource "kubectl_manifest" "proxmox_machine_config" {
   for_each = var.proxmox_machine_configs_enabled ? var.proxmox_machine_configs : {}
 
@@ -167,6 +178,7 @@ resource "kubectl_manifest" "proxmox_machine_config" {
   depends_on = [
     rancher2_node_driver.proxmox,
     kubectl_manifest.proxmox_node_driver,
+    time_sleep.wait_for_proxmox_driver,
   ]
 }
 

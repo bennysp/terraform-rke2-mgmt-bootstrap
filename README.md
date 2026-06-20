@@ -29,6 +29,7 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 - Optional Proxmox machine-config CR creation is supported via `kubectl_manifest`:
 	- set `proxmox_machine_configs_enabled = true`
 	- define `proxmox_machine_configs` map keyed by config object name (for example cp/worker)
+	- `proxmox_machine_config_wait_duration` controls the provider-based wait after node driver creation before machine-config CRs are applied (default `45s`)
 - Downstream provisioning can then reference these machine configs by `kind`/`name` with no manual Rancher UI object creation.
 
 ## Vault Secret Expectations
