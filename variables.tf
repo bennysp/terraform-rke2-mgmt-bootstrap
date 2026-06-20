@@ -179,8 +179,10 @@ variable "proxmox_node_driver_whitelist_domains" {
     "githubusercontent.com",
     "objects.githubusercontent.com",
     "raw.githubusercontent.com",
+    "*.domain.thedaily.tv",
     "domain.thedaily.tv",
     "proxmox.domain.thedaily.tv",
+    "proxmox.domain.thedaily.tv:8006",
   ]
 }
 
