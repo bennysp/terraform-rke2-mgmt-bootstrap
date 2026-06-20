@@ -25,3 +25,7 @@ A direct Proxmox machine config for `rancher2_cluster_v2` is not visible in the 
 
 - Evaluate Rancher node driver capabilities (`rancher2_node_driver` / `rancher2_node_template`) only if you specifically need node-driver-based dynamic scaling from Rancher.
 - If no stable Proxmox node-driver path exists for your Rancher version, continue with Terraform-provisioned Proxmox nodes plus Rancher registration/bootstrap.
+
+## Validation matrix
+
+- See `PROXMOX_DRIVER_VALIDATION_MATRIX.md` for a non-destructive test plan and go/no-go criteria before adopting any Proxmox node-driver workflow.
