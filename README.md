@@ -20,10 +20,11 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 
 ## Proxmox Node Driver Deployment
 
-- Optional Rancher node-driver deployment is supported via `rancher2_node_driver`.
+- Optional Rancher node-driver deployment supports extension-first flow and direct node-driver fallback modes.
 - Set `proxmox_node_driver_enabled = true` to deploy/update the Proxmox custom node driver from management bootstrap.
 - Deployment mode is controlled by `proxmox_node_driver_deploy_mode`:
-  - `kubectl` (default): apply Rancher `NodeDriver` CRD via Kubernetes API (native-first path)
+  - `extension` (default): create Rancher App Repository and install the upstream `pve-node-driver` extension chart
+  - `kubectl`: apply Rancher `NodeDriver` CRD via Kubernetes API
   - `rancher2`: use Rancher API provider (fallback)
 - Rancher API URL/token are read from Vault path `vault_rancher_api_secret_path`.
 - Optional Proxmox machine-config CR creation is supported via `kubectl_manifest`:
@@ -31,7 +32,7 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 	- define `proxmox_machine_configs` map keyed by config object name (for example cp/worker)
 	- active readiness wait is used before machine-config creation:
 		- waits for NodeDriver conditions `Downloaded=True` and `Installed=True`
-		- waits for CRD `proxmoxveconfigs.rke-machine-config.cattle.io`
+		- waits for CRD `pveconfigs.rke-machine-config.cattle.io` (configurable via `proxmox_machine_config_crd_name`)
 	- tune wait behavior with:
 		- `proxmox_node_driver_ready_timeout_seconds` (default `900`)
 		- `proxmox_node_driver_ready_poll_interval_seconds` (default `10`)
