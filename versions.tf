@@ -18,5 +18,9 @@ terraform {
       source  = "nexus.ta.domain.thedaily.tv/gavinbunney/kubectl"
       version = "~> 1.14"
     }
+    helm = {
+      source  = "nexus.ta.domain.thedaily.tv/hashicorp/helm"
+      version = "~> 2.16"
+    }
   }
 }

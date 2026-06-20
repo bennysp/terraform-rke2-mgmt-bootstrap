@@ -77,26 +77,26 @@ variable "proxmox_node_driver_enabled" {
 }
 
 variable "proxmox_node_driver_deploy_mode" {
-  description = "Deployment mode for Proxmox node driver. Use kubectl (native CRD apply) first, rancher2 as fallback."
+  description = "Deployment mode for Proxmox node driver. extension installs the upstream chart via App Repository, kubectl applies NodeDriver CR directly, rancher2 uses provider resource."
   type        = string
-  default     = "kubectl"
+  default     = "extension"
 
   validation {
-    condition     = contains(["kubectl", "rancher2"], lower(trimspace(var.proxmox_node_driver_deploy_mode)))
-    error_message = "proxmox_node_driver_deploy_mode must be one of: kubectl, rancher2."
+    condition     = contains(["extension", "kubectl", "rancher2"], lower(trimspace(var.proxmox_node_driver_deploy_mode)))
+    error_message = "proxmox_node_driver_deploy_mode must be one of: extension, kubectl, rancher2."
   }
 }
 
 variable "proxmox_node_driver_name" {
   description = "Rancher node driver display name."
   type        = string
-  default     = "proxmoxve"
+  default     = "pve"
 }
 
 variable "proxmox_node_driver_url" {
-  description = "Download URL for the Proxmox node driver binary tarball."
+  description = "Download URL for the Proxmox node driver binary."
   type        = string
-  default     = "https://github.com/Stellatarum/docker-machine-driver-pve/releases/download/v1.1.0/pve-node-driver-1.1.0.tgz"
+  default     = "https://github.com/Stellatarum/docker-machine-driver-pve/releases/download/v1.1.0/docker-machine-driver-pve"
 }
 
 variable "proxmox_node_driver_checksum" {
@@ -108,7 +108,7 @@ variable "proxmox_node_driver_checksum" {
 variable "proxmox_node_driver_description" {
   description = "Description shown in Rancher for the custom node driver."
   type        = string
-  default     = "Proxmox VE node driver"
+  default     = "Node Driver for Proxmox Virtual Environment"
 }
 
 variable "proxmox_node_driver_ui_url" {
@@ -128,6 +128,42 @@ variable "proxmox_node_driver_whitelist_domains" {
     "domain.thedaily.tv",
     "proxmox.domain.thedaily.tv",
   ]
+}
+
+variable "proxmox_extension_repo_name" {
+  description = "Rancher Apps repository name for the upstream Proxmox node driver chart."
+  type        = string
+  default     = "pve-node-driver"
+}
+
+variable "proxmox_extension_repo_url" {
+  description = "Rancher Apps repository URL for the Proxmox node driver extension chart index."
+  type        = string
+  default     = "https://stellatarum.github.io/docker-machine-driver-pve"
+}
+
+variable "proxmox_extension_chart_name" {
+  description = "Chart name to install from proxmox_extension_repo_url."
+  type        = string
+  default     = "pve-node-driver"
+}
+
+variable "proxmox_extension_chart_version" {
+  description = "Optional chart version to pin for the Proxmox node driver extension. Empty uses the latest available version."
+  type        = string
+  default     = ""
+}
+
+variable "proxmox_extension_namespace" {
+  description = "Namespace where the Proxmox extension chart is installed."
+  type        = string
+  default     = "cattle-ui-plugin-system"
+}
+
+variable "proxmox_extension_install_timeout_seconds" {
+  description = "Timeout for extension chart install/upgrade."
+  type        = number
+  default     = 900
 }
 
 variable "proxmox_machine_configs_enabled" {
@@ -154,10 +190,16 @@ variable "proxmox_node_driver_ready_poll_interval_seconds" {
   default     = 10
 }
 
+variable "proxmox_machine_config_crd_name" {
+  description = "Machine config CRD name that must exist before creating machine config objects."
+  type        = string
+  default     = "pveconfigs.rke-machine-config.cattle.io"
+}
+
 variable "proxmox_machine_configs" {
   description = "Map of Proxmox machine config objects keyed by metadata.name. Values are rendered as CR manifests."
   type = map(object({
-    kind        = optional(string, "ProxmoxveConfig")
+    kind        = optional(string, "PveConfig")
     api_version = optional(string, "rke-machine-config.cattle.io/v1")
     namespace   = optional(string, "fleet-default")
     spec        = map(any)
