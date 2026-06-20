@@ -122,16 +122,6 @@ provider "kubectl" {
   load_config_file       = false
 }
 
-provider "helm" {
-  kubernetes {
-    host                   = local.kube_host
-    token                  = local.kube_token != "" ? local.kube_token : null
-    cluster_ca_certificate = local.kube_ca_certificate != "" ? local.kube_ca_certificate : null
-    client_certificate     = local.kube_client_certificate != "" ? local.kube_client_certificate : null
-    client_key             = local.kube_client_key != "" ? local.kube_client_key : null
-  }
-}
-
 provider "rancher2" {
   api_url   = local.rancher_api_url_value
   token_key = local.rancher_api_token_value
@@ -152,37 +142,39 @@ resource "rancher2_catalog_v2" "proxmox_extension_repo" {
   }
 }
 
-resource "helm_release" "proxmox_node_driver_extension" {
+resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "extension" ? 1 : 0
 
-  name             = var.proxmox_extension_chart_name
-  namespace        = var.proxmox_extension_namespace
-  create_namespace = true
-  repository       = var.proxmox_extension_repo_url
-  chart            = var.proxmox_extension_chart_name
-  version          = trimspace(var.proxmox_extension_chart_version) != "" ? var.proxmox_extension_chart_version : null
-  timeout          = var.proxmox_extension_install_timeout_seconds
+  cluster_id    = data.rancher2_cluster_v2.local.id
+  name          = var.proxmox_extension_chart_name
+  namespace     = var.proxmox_extension_namespace
+  repo_name     = var.proxmox_extension_repo_name
+  chart_name    = var.proxmox_extension_chart_name
+  chart_version = trimspace(var.proxmox_extension_chart_version) != "" ? var.proxmox_extension_chart_version : null
+  values = yamlencode(merge(
+    {
+      nodeDriver = merge(
+        {
+          url              = var.proxmox_node_driver_url
+          whitelistDomains = var.proxmox_node_driver_whitelist_domains
+        },
+        trimspace(var.proxmox_node_driver_checksum) != "" ? {
+          checksum = var.proxmox_node_driver_checksum
+        } : {}
+      )
+    },
+    trimspace(var.proxmox_node_driver_ui_url) != "" ? {
+      uiPlugin = {
+        endpoint = var.proxmox_node_driver_ui_url
+      }
+    } : {}
+  ))
 
-  values = [
-    yamlencode(merge(
-      {
-        nodeDriver = merge(
-          {
-            url              = var.proxmox_node_driver_url
-            whitelistDomains = var.proxmox_node_driver_whitelist_domains
-          },
-          trimspace(var.proxmox_node_driver_checksum) != "" ? {
-            checksum = var.proxmox_node_driver_checksum
-          } : {}
-        )
-      },
-      trimspace(var.proxmox_node_driver_ui_url) != "" ? {
-        uiPlugin = {
-          endpoint = var.proxmox_node_driver_ui_url
-        }
-      } : {}
-    ))
-  ]
+  timeouts {
+    create = "${var.proxmox_extension_install_timeout_seconds}s"
+    update = "${var.proxmox_extension_install_timeout_seconds}s"
+    delete = "20m"
+  }
 
   depends_on = [
     rancher2_catalog_v2.proxmox_extension_repo,
@@ -276,7 +268,7 @@ KUBECONFIG_EOF
   }
 
   depends_on = [
-    helm_release.proxmox_node_driver_extension,
+    rancher2_app_v2.proxmox_node_driver_extension,
     rancher2_node_driver.proxmox,
     kubectl_manifest.proxmox_node_driver,
   ]
@@ -296,7 +288,7 @@ resource "kubectl_manifest" "proxmox_machine_config" {
   })
 
   depends_on = [
-    helm_release.proxmox_node_driver_extension,
+    rancher2_app_v2.proxmox_node_driver_extension,
     rancher2_node_driver.proxmox,
     kubectl_manifest.proxmox_node_driver,
     terraform_data.wait_for_proxmox_driver_ready,
