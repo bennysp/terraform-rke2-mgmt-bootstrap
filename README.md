@@ -30,7 +30,10 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 
 ## Vault Secret Expectations
 
-- `vault_github_secret_path` should resolve with keys matching `vault_github_username_key` and `vault_github_password_key` (defaults: `user`, `token`).
+- `vault_github_secret_path` should resolve with Git auth keys.
+	- Primary keys: `vault_github_username_key` and `vault_github_password_key` (defaults: `user`, `token`).
+	- Fallback keys are also accepted: username (`username`, `user`, `login`) and password/token (`password`, `token`, `pat`, `access_token`).
+	- Bootstrap now fails early if username or password/token resolves empty.
 - `vault_rancher_api_secret_path` should resolve with keys matching `vault_rancher_api_url_key` and `vault_rancher_api_token_key` (defaults: `rancher-api-url`, `rancher-api-secret`).
 
 Rancher Management bootstrap module
