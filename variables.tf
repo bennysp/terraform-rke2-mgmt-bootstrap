@@ -182,6 +182,7 @@ variable "proxmox_node_driver_whitelist_domains" {
     "*.domain.thedaily.tv",
     "domain.thedaily.tv",
     "proxmox.domain.thedaily.tv",
+    "virthost01.domain.thedaily.tv",
     "proxmox.domain.thedaily.tv:8006",
   ]
 }
