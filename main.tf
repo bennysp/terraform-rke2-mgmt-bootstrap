@@ -1,7 +1,12 @@
 locals {
-  github_secret_parts = [for p in split("/", trim(var.vault_github_secret_path, "/")) : p if p != ""]
-  github_secret_mount = length(local.github_secret_parts) > 0 ? local.github_secret_parts[0] : ""
-  github_secret_name  = length(local.github_secret_parts) > 1 ? join("/", slice(local.github_secret_parts, 1, length(local.github_secret_parts))) : ""
+  rancher_api_url_value = try(
+    tostring(data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_url_key]),
+    ""
+  )
+  rancher_api_token_value = try(
+    tostring(data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_token_key]),
+    ""
+  )
 }
 
 data "vault_kv_secret_v2" "kubeconfig" {
@@ -9,13 +14,12 @@ data "vault_kv_secret_v2" "kubeconfig" {
   name  = var.vault_kubeconfig_secret_name
 }
 
-data "vault_kv_secret_v2" "github" {
-  mount = local.github_secret_mount
-  name  = local.github_secret_name
+data "vault_generic_secret" "github" {
+  path = var.vault_github_secret_path
 }
 
 data "vault_generic_secret" "rancher_local" {
-  path = var.vault_rancher_secret_path
+  path = var.vault_rancher_api_secret_path
 }
 
 locals {
@@ -46,8 +50,8 @@ locals {
   kube_client_certificate = try(base64decode(local.kube_user_entry.user["client-certificate-data"]), "")
   kube_client_key         = try(base64decode(local.kube_user_entry.user["client-key-data"]), "")
 
-  fleet_git_username = try(tostring(data.vault_kv_secret_v2.github.data[var.vault_github_username_key]), "")
-  fleet_git_password = try(tostring(data.vault_kv_secret_v2.github.data[var.vault_github_password_key]), "")
+  fleet_git_username = try(tostring(data.vault_generic_secret.github.data[var.vault_github_username_key]), "")
+  fleet_git_password = try(tostring(data.vault_generic_secret.github.data[var.vault_github_password_key]), "")
 
   enabled_bundles = {
     for name, cfg in var.bootstrap_bundles : name => cfg if try(cfg.enabled, true)
@@ -72,8 +76,8 @@ provider "kubectl" {
 }
 
 provider "rancher2" {
-  api_url   = data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_url_key]
-  token_key = data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_token_key]
+  api_url   = local.rancher_api_url_value
+  token_key = local.rancher_api_token_value
   insecure  = true
   timeout   = "20m"
 }

@@ -47,7 +47,13 @@ variable "vault_github_password_key" {
 }
 
 variable "vault_rancher_secret_path" {
-  description = "Vault path containing Rancher API endpoint and token used to manage node drivers."
+  description = "Legacy variable kept for compatibility. Not used for Rancher API in this module."
+  type        = string
+  default     = "secret/rancher/clusters/local"
+}
+
+variable "vault_rancher_api_secret_path" {
+  description = "Vault path containing Rancher API endpoint and token used to manage node drivers and machine configs."
   type        = string
   default     = "secret/rancher/clusters/local"
 }
