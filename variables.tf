@@ -70,6 +70,60 @@ variable "vault_rancher_api_token_key" {
   default     = "rancher-api-secret"
 }
 
+variable "vault_proxmox_api_secret_path" {
+  description = "Vault path containing Proxmox API credential values used to create Rancher cloud credential."
+  type        = string
+  default     = "secret/proxmox/api"
+}
+
+variable "vault_proxmox_api_url_key" {
+  description = "Vault key containing Proxmox API URL (for example https://proxmox.example:8006)."
+  type        = string
+  default     = "url"
+}
+
+variable "vault_proxmox_api_token_key" {
+  description = "Vault key containing combined Proxmox API token value tokenId=tokenSecret."
+  type        = string
+  default     = "token"
+}
+
+variable "vault_proxmox_api_token_id_key" {
+  description = "Optional Vault key containing Proxmox token ID. If set and present, it takes precedence over parsing vault_proxmox_api_token_key."
+  type        = string
+  default     = "token_id"
+}
+
+variable "vault_proxmox_api_token_secret_key" {
+  description = "Optional Vault key containing Proxmox token secret. If set and present, it takes precedence over parsing vault_proxmox_api_token_key."
+  type        = string
+  default     = "token_secret"
+}
+
+variable "proxmox_cloud_credential_enabled" {
+  description = "If true, creates/updates Rancher Proxmox cloud credential from Vault secret data."
+  type        = bool
+  default     = true
+}
+
+variable "proxmox_cloud_credential_name" {
+  description = "Rancher cloud credential object name for Proxmox."
+  type        = string
+  default     = "proxmox-cred"
+}
+
+variable "proxmox_cloud_credential_description" {
+  description = "Description shown in Rancher for Proxmox cloud credential."
+  type        = string
+  default     = "Proxmox VE API credential"
+}
+
+variable "proxmox_cloud_credential_insecure_tls" {
+  description = "Whether to skip TLS verification for Proxmox API in Rancher cloud credential."
+  type        = bool
+  default     = true
+}
+
 variable "proxmox_node_driver_enabled" {
   description = "If true, deploys/updates a Proxmox custom node driver in Rancher management."
   type        = bool

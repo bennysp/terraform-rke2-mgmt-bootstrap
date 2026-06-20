@@ -12,6 +12,26 @@ locals {
     tostring(data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_token_key]),
     ""
   )
+  proxmox_secret_data = try(data.vault_generic_secret.proxmox_api.data, {})
+  proxmox_api_url = trimspace(try(
+    tostring(local.proxmox_secret_data[var.vault_proxmox_api_url_key]),
+    ""
+  ))
+  proxmox_api_token_combined = trimspace(try(
+    tostring(local.proxmox_secret_data[var.vault_proxmox_api_token_key]),
+    ""
+  ))
+  proxmox_api_token_parts = split("=", local.proxmox_api_token_combined)
+
+  proxmox_api_token_id = trimspace(try(
+    tostring(local.proxmox_secret_data[var.vault_proxmox_api_token_id_key]),
+    length(local.proxmox_api_token_parts) > 1 ? local.proxmox_api_token_parts[0] : ""
+  ))
+
+  proxmox_api_token_secret = trimspace(try(
+    tostring(local.proxmox_secret_data[var.vault_proxmox_api_token_secret_key]),
+    length(local.proxmox_api_token_parts) > 1 ? join("=", slice(local.proxmox_api_token_parts, 1, length(local.proxmox_api_token_parts))) : ""
+  ))
 }
 
 data "vault_kv_secret_v2" "kubeconfig" {
@@ -25,6 +45,10 @@ data "vault_generic_secret" "github" {
 
 data "vault_generic_secret" "rancher_local" {
   path = var.vault_rancher_api_secret_path
+}
+
+data "vault_generic_secret" "proxmox_api" {
+  path = var.vault_proxmox_api_secret_path
 }
 
 locals {
@@ -289,6 +313,36 @@ resource "kubectl_manifest" "proxmox_machine_config" {
     kubectl_manifest.proxmox_node_driver,
     terraform_data.wait_for_proxmox_driver_ready,
   ]
+}
+
+resource "kubectl_manifest" "proxmox_cloud_credential" {
+  count = var.proxmox_cloud_credential_enabled ? 1 : 0
+
+  yaml_body = yamlencode({
+    apiVersion = "management.cattle.io/v3"
+    kind       = "CloudCredential"
+    metadata = {
+      name = var.proxmox_cloud_credential_name
+    }
+    description = var.proxmox_cloud_credential_description
+    pvecredentialConfig = {
+      url         = local.proxmox_api_url
+      insecureTls = var.proxmox_cloud_credential_insecure_tls
+      tokenId     = local.proxmox_api_token_id
+      tokenSecret = local.proxmox_api_token_secret
+    }
+  })
+
+  depends_on = [
+    rancher2_app_v2.proxmox_node_driver_extension,
+  ]
+
+  lifecycle {
+    precondition {
+      condition = local.proxmox_api_url != "" && local.proxmox_api_token_id != "" && local.proxmox_api_token_secret != ""
+      error_message = "Proxmox cloud credential values resolved empty from Vault. Check vault_proxmox_api_secret_path and token/url key settings."
+    }
+  }
 }
 
 resource "kubernetes_secret" "fleet_git_auth" {
