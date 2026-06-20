@@ -14,6 +14,10 @@ data "vault_kv_secret_v2" "github" {
   name  = local.github_secret_name
 }
 
+data "vault_generic_secret" "rancher_local" {
+  path = var.vault_rancher_secret_path
+}
+
 locals {
   kubeconfig_raw = try(tostring(data.vault_kv_secret_v2.kubeconfig.data[var.vault_kubeconfig_secret_key]), "")
   kubeconfig_yaml = trimspace(local.kubeconfig_raw) != "" ? (
@@ -65,6 +69,26 @@ provider "kubectl" {
   client_certificate     = local.kube_client_certificate != "" ? local.kube_client_certificate : null
   client_key             = local.kube_client_key != "" ? local.kube_client_key : null
   load_config_file       = false
+}
+
+provider "rancher2" {
+  api_url   = data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_url_key]
+  token_key = data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_token_key]
+  insecure  = true
+  timeout   = "20m"
+}
+
+resource "rancher2_node_driver" "proxmox" {
+  count = var.proxmox_node_driver_enabled ? 1 : 0
+
+  active            = true
+  builtin           = false
+  name              = var.proxmox_node_driver_name
+  url               = var.proxmox_node_driver_url
+  checksum          = var.proxmox_node_driver_checksum
+  description       = var.proxmox_node_driver_description
+  ui_url            = var.proxmox_node_driver_ui_url
+  whitelist_domains = var.proxmox_node_driver_whitelist_domains
 }
 
 resource "kubernetes_secret" "fleet_git_auth" {

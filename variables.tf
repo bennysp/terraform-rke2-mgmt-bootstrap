@@ -46,6 +46,71 @@ variable "vault_github_password_key" {
   default     = "token"
 }
 
+variable "vault_rancher_secret_path" {
+  description = "Vault path containing Rancher API endpoint and token used to manage node drivers."
+  type        = string
+  default     = "secret/rancher/clusters/local"
+}
+
+variable "vault_rancher_api_url_key" {
+  description = "Vault key that stores Rancher API URL."
+  type        = string
+  default     = "rancher-api-url"
+}
+
+variable "vault_rancher_api_token_key" {
+  description = "Vault key that stores Rancher API token."
+  type        = string
+  default     = "rancher-api-secret"
+}
+
+variable "proxmox_node_driver_enabled" {
+  description = "If true, deploys/updates a Proxmox custom node driver in Rancher management."
+  type        = bool
+  default     = false
+}
+
+variable "proxmox_node_driver_name" {
+  description = "Rancher node driver display name."
+  type        = string
+  default     = "proxmoxve"
+}
+
+variable "proxmox_node_driver_url" {
+  description = "Download URL for the Proxmox node driver binary tarball."
+  type        = string
+  default     = "https://github.com/Stellatarum/docker-machine-driver-pve/releases/download/v1.2.0-rc2/docker-machine-driver-pve_v1.2.0-rc2_linux_amd64.tar.gz"
+}
+
+variable "proxmox_node_driver_checksum" {
+  description = "Optional checksum for downloaded node driver binary."
+  type        = string
+  default     = ""
+}
+
+variable "proxmox_node_driver_description" {
+  description = "Description shown in Rancher for the custom node driver."
+  type        = string
+  default     = "Proxmox VE node driver"
+}
+
+variable "proxmox_node_driver_ui_url" {
+  description = "Optional UI extension URL for the custom node driver."
+  type        = string
+  default     = ""
+}
+
+variable "proxmox_node_driver_whitelist_domains" {
+  description = "Domains to whitelist for driver and UI URLs."
+  type        = list(string)
+  default = [
+    "github.com",
+    "githubusercontent.com",
+    "objects.githubusercontent.com",
+    "raw.githubusercontent.com",
+  ]
+}
+
 variable "fleet_namespace" {
   description = "Namespace where Fleet GitRepo resources and git secret are created."
   type        = string
