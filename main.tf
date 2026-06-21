@@ -227,11 +227,11 @@ resource "kubectl_manifest" "proxmox_machine_config" {
   for_each = var.proxmox_machine_configs
 
   yaml_body = yamlencode({
-    apiVersion = try(each.value.api_version, "rke-machine-config.cattle.io/v1")
-    kind       = try(each.value.kind, "PveConfig")
+    apiVersion = each.value.api_version
+    kind       = each.value.kind
     metadata = {
       name      = each.key
-      namespace = try(each.value.namespace, "fleet-default")
+      namespace = each.value.namespace
     }
     spec = each.value.spec
   })

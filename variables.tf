@@ -173,9 +173,9 @@ variable "proxmox_machine_config_crd_name" {
 variable "proxmox_machine_configs" {
   description = "Map of Proxmox machine config objects keyed by metadata.name. Values are rendered as CR manifests."
   type = map(object({
-    kind        = optional(string, "PveConfig")
-    api_version = optional(string, "rke-machine-config.cattle.io/v1")
-    namespace   = optional(string, "fleet-default")
+    kind        = string
+    api_version = string
+    namespace   = string
     spec        = map(any)
   }))
   default = {}
