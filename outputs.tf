@@ -10,11 +10,7 @@ output "fleet_namespace" {
 
 output "proxmox_node_driver_id" {
   description = "Rancher node driver ID when proxmox node driver deployment is enabled."
-  value = var.proxmox_node_driver_enabled ? (
-    lower(trimspace(var.proxmox_node_driver_deploy_mode)) == "rancher2"
-    ? try(rancher2_node_driver.proxmox[0].id, null)
-    : try(kubectl_manifest.proxmox_node_driver[0].name, var.proxmox_node_driver_name)
-  ) : null
+  value       = var.proxmox_node_driver_enabled ? var.proxmox_node_driver_name : null
 }
 
 output "proxmox_machine_config_names" {

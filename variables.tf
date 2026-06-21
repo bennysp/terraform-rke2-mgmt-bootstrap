@@ -4,12 +4,6 @@ variable "vault_kubeconfig_secret_mount" {
   default     = "secret"
 }
 
-variable "depends_on_rancher_url" {
-  description = "Terragrunt dependency passthrough used only to enforce ordering."
-  type        = string
-  default     = ""
-}
-
 variable "vault_kubeconfig_secret_name" {
   description = "Vault KV v2 secret name containing kubeconfig payload."
   type        = string
@@ -44,12 +38,6 @@ variable "vault_github_password_key" {
   description = "Password/token key in Git credentials secret."
   type        = string
   default     = "token"
-}
-
-variable "vault_rancher_secret_path" {
-  description = "Legacy variable kept for compatibility. Not used for Rancher API in this module."
-  type        = string
-  default     = "secret/rancher/clusters/local"
 }
 
 variable "vault_rancher_api_secret_path" {
@@ -88,18 +76,6 @@ variable "vault_proxmox_api_token_key" {
   default     = "token"
 }
 
-variable "vault_proxmox_api_token_id_key" {
-  description = "Optional Vault key containing Proxmox token ID. If set and present, it takes precedence over parsing vault_proxmox_api_token_key."
-  type        = string
-  default     = "token_id"
-}
-
-variable "vault_proxmox_api_token_secret_key" {
-  description = "Optional Vault key containing Proxmox token secret. If set and present, it takes precedence over parsing vault_proxmox_api_token_key."
-  type        = string
-  default     = "token_secret"
-}
-
 variable "proxmox_cloud_credential_enabled" {
   description = "If true, creates/updates Rancher Proxmox cloud credential from Vault secret data."
   type        = bool
@@ -130,17 +106,6 @@ variable "proxmox_node_driver_enabled" {
   default     = false
 }
 
-variable "proxmox_node_driver_deploy_mode" {
-  description = "Deployment mode for Proxmox node driver. extension installs the upstream chart via App Repository, kubectl applies NodeDriver CR directly, rancher2 uses provider resource."
-  type        = string
-  default     = "extension"
-
-  validation {
-    condition     = contains(["extension", "kubectl", "rancher2"], lower(trimspace(var.proxmox_node_driver_deploy_mode)))
-    error_message = "proxmox_node_driver_deploy_mode must be one of: extension, kubectl, rancher2."
-  }
-}
-
 variable "proxmox_node_driver_name" {
   description = "Rancher node driver display name."
   type        = string
@@ -151,24 +116,6 @@ variable "proxmox_node_driver_url" {
   description = "Download URL for the Proxmox node driver binary."
   type        = string
   default     = "https://github.com/Stellatarum/docker-machine-driver-pve/releases/download/v1.2.0-rc2/docker-machine-driver-pve"
-}
-
-variable "proxmox_node_driver_checksum" {
-  description = "Optional checksum for downloaded node driver binary."
-  type        = string
-  default     = ""
-}
-
-variable "proxmox_node_driver_description" {
-  description = "Description shown in Rancher for the custom node driver."
-  type        = string
-  default     = "Node Driver for Proxmox Virtual Environment"
-}
-
-variable "proxmox_node_driver_ui_url" {
-  description = "Optional UI extension URL for the custom node driver."
-  type        = string
-  default     = ""
 }
 
 variable "proxmox_node_driver_whitelist_domains" {
@@ -205,12 +152,6 @@ variable "proxmox_extension_chart_name" {
   default     = "pve-node-driver"
 }
 
-variable "proxmox_extension_chart_version" {
-  description = "Optional chart version to pin for the Proxmox node driver extension. Empty uses the latest available version."
-  type        = string
-  default     = ""
-}
-
 variable "proxmox_extension_namespace" {
   description = "Namespace where the Proxmox extension chart is installed."
   type        = string
@@ -227,12 +168,6 @@ variable "proxmox_machine_configs_enabled" {
   description = "If true, creates Proxmox machine config CRs in Rancher for downstream cluster pools."
   type        = bool
   default     = false
-}
-
-variable "proxmox_machine_config_wait_duration" {
-  description = "Wait duration after node driver creation before applying Proxmox machine config CRs."
-  type        = string
-  default     = "45s"
 }
 
 variable "proxmox_node_driver_ready_timeout_seconds" {

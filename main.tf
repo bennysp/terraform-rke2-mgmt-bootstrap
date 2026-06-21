@@ -1,13 +1,8 @@
 locals {
-  rancher_api_url_dependency = trimspace(var.depends_on_rancher_url)
-  rancher_api_url_vault = try(
-    trimspace(tostring(data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_url_key])),
+  rancher_api_url_value = trimspace(try(
+    tostring(data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_url_key]),
     ""
-  )
-  rancher_api_url_value = try(
-    local.rancher_api_url_dependency != "" ? local.rancher_api_url_dependency : local.rancher_api_url_vault,
-    local.rancher_api_url_vault
-  )
+  ))
   rancher_api_token_value = try(
     tostring(data.vault_generic_secret.rancher_local.data[var.vault_rancher_api_token_key]),
     ""
@@ -23,15 +18,13 @@ locals {
   ))
   proxmox_api_token_parts = split("=", local.proxmox_api_token_combined)
 
-  proxmox_api_token_id = trimspace(try(
-    tostring(local.proxmox_secret_data[var.vault_proxmox_api_token_id_key]),
+  proxmox_api_token_id = trimspace(
     length(local.proxmox_api_token_parts) > 1 ? local.proxmox_api_token_parts[0] : ""
-  ))
+  )
 
-  proxmox_api_token_secret = trimspace(try(
-    tostring(local.proxmox_secret_data[var.vault_proxmox_api_token_secret_key]),
+  proxmox_api_token_secret = trimspace(
     length(local.proxmox_api_token_parts) > 1 ? join("=", slice(local.proxmox_api_token_parts, 1, length(local.proxmox_api_token_parts))) : ""
-  ))
+  )
 }
 
 data "vault_kv_secret_v2" "kubeconfig" {
@@ -81,20 +74,12 @@ locals {
 
   github_secret_data = try(data.vault_generic_secret.github.data, {})
 
-  # Accept common Vault key conventions so Fleet auth keeps working across legacy/new secret shapes.
   fleet_git_username = trimspace(try(
     tostring(local.github_secret_data[var.vault_github_username_key]),
-    tostring(local.github_secret_data["username"]),
-    tostring(local.github_secret_data["user"]),
-    tostring(local.github_secret_data["login"]),
     ""
   ))
   fleet_git_password = trimspace(try(
     tostring(local.github_secret_data[var.vault_github_password_key]),
-    tostring(local.github_secret_data["password"]),
-    tostring(local.github_secret_data["token"]),
-    tostring(local.github_secret_data["pat"]),
-    tostring(local.github_secret_data["access_token"]),
     ""
   ))
 
@@ -102,27 +87,6 @@ locals {
     for name, cfg in var.bootstrap_bundles : name => cfg if try(cfg.enabled, true)
   }
 
-  proxmox_node_driver_mode = lower(trimspace(var.proxmox_node_driver_deploy_mode))
-  proxmox_node_driver_spec = merge(
-    {
-      active      = true
-      builtin     = false
-      displayName = var.proxmox_node_driver_name
-      url         = var.proxmox_node_driver_url
-    },
-    trimspace(var.proxmox_node_driver_checksum) != "" ? {
-      checksum = var.proxmox_node_driver_checksum
-    } : {},
-    trimspace(var.proxmox_node_driver_description) != "" ? {
-      description = var.proxmox_node_driver_description
-    } : {},
-    trimspace(var.proxmox_node_driver_ui_url) != "" ? {
-      uiUrl = var.proxmox_node_driver_ui_url
-    } : {},
-    length(var.proxmox_node_driver_whitelist_domains) > 0 ? {
-      whitelistDomains = var.proxmox_node_driver_whitelist_domains
-    } : {}
-  )
 }
 
 provider "kubernetes" {
@@ -163,7 +127,7 @@ provider "restapi" {
 }
 
 resource "rancher2_catalog_v2" "proxmox_extension_repo" {
-  count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "extension" ? 1 : 0
+  count = var.proxmox_node_driver_enabled ? 1 : 0
 
   cluster_id = "local"
   name       = var.proxmox_extension_repo_name
@@ -176,32 +140,19 @@ resource "rancher2_catalog_v2" "proxmox_extension_repo" {
 }
 
 resource "rancher2_app_v2" "proxmox_node_driver_extension" {
-  count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "extension" ? 1 : 0
+  count = var.proxmox_node_driver_enabled ? 1 : 0
 
   cluster_id    = "local"
   name          = var.proxmox_extension_chart_name
   namespace     = var.proxmox_extension_namespace
   repo_name     = var.proxmox_extension_repo_name
   chart_name    = var.proxmox_extension_chart_name
-  chart_version = trimspace(var.proxmox_extension_chart_version) != "" ? var.proxmox_extension_chart_version : null
-  values = yamlencode(merge(
-    {
-      nodeDriver = merge(
-        {
-          url              = var.proxmox_node_driver_url
-          whitelistDomains = var.proxmox_node_driver_whitelist_domains
-        },
-        trimspace(var.proxmox_node_driver_checksum) != "" ? {
-          checksum = var.proxmox_node_driver_checksum
-        } : {}
-      )
-    },
-    trimspace(var.proxmox_node_driver_ui_url) != "" ? {
-      uiPlugin = {
-        endpoint = var.proxmox_node_driver_ui_url
-      }
-    } : {}
-  ))
+  values = yamlencode({
+    nodeDriver = {
+      url              = var.proxmox_node_driver_url
+      whitelistDomains = var.proxmox_node_driver_whitelist_domains
+    }
+  })
 
   timeouts {
     create = "${var.proxmox_extension_install_timeout_seconds}s"
@@ -212,32 +163,6 @@ resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   depends_on = [
     rancher2_catalog_v2.proxmox_extension_repo,
   ]
-}
-
-resource "rancher2_node_driver" "proxmox" {
-  count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "rancher2" ? 1 : 0
-
-  active            = true
-  builtin           = false
-  name              = var.proxmox_node_driver_name
-  url               = var.proxmox_node_driver_url
-  checksum          = var.proxmox_node_driver_checksum
-  description       = var.proxmox_node_driver_description
-  ui_url            = var.proxmox_node_driver_ui_url
-  whitelist_domains = var.proxmox_node_driver_whitelist_domains
-}
-
-resource "kubectl_manifest" "proxmox_node_driver" {
-  count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "kubectl" ? 1 : 0
-
-  yaml_body = yamlencode({
-    apiVersion = "management.cattle.io/v3"
-    kind       = "NodeDriver"
-    metadata = {
-      name = var.proxmox_node_driver_name
-    }
-    spec = local.proxmox_node_driver_spec
-  })
 }
 
 resource "terraform_data" "wait_for_proxmox_driver_ready" {
@@ -253,7 +178,6 @@ resource "terraform_data" "wait_for_proxmox_driver_ready" {
   triggers_replace = [
     var.proxmox_node_driver_name,
     var.proxmox_node_driver_url,
-    var.proxmox_node_driver_deploy_mode,
     sha256(local.kubeconfig_yaml),
   ]
 
@@ -302,8 +226,6 @@ KUBECONFIG_EOF
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
-    rancher2_node_driver.proxmox,
-    kubectl_manifest.proxmox_node_driver,
   ]
 }
 
@@ -322,8 +244,6 @@ resource "kubectl_manifest" "proxmox_machine_config" {
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
-    rancher2_node_driver.proxmox,
-    kubectl_manifest.proxmox_node_driver,
     terraform_data.wait_for_proxmox_driver_ready,
   ]
 }
