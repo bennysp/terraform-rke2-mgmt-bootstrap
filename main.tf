@@ -114,12 +114,12 @@ provider "rancher2" {
 }
 
 provider "restapi" {
-  uri                  = local.rancher_api_url_value
-  bearer_token         = local.rancher_api_token_value
-  insecure             = true
-  write_returns_object = true
+  uri                   = local.rancher_api_url_value
+  bearer_token          = local.rancher_api_token_value
+  insecure              = true
+  write_returns_object  = true
   create_returns_object = true
-  id_attribute         = "id"
+  id_attribute          = "id"
 
   headers = {
     "Content-Type" = "application/json"
@@ -138,11 +138,11 @@ resource "rancher2_catalog_v2" "proxmox_extension_repo" {
 }
 
 resource "rancher2_app_v2" "proxmox_node_driver_extension" {
-  cluster_id    = "local"
-  name          = var.proxmox_extension_chart_name
-  namespace     = var.proxmox_extension_namespace
-  repo_name     = var.proxmox_extension_repo_name
-  chart_name    = var.proxmox_extension_chart_name
+  cluster_id = "local"
+  name       = var.proxmox_extension_chart_name
+  namespace  = var.proxmox_extension_namespace
+  repo_name  = var.proxmox_extension_repo_name
+  chart_name = var.proxmox_extension_chart_name
   values = yamlencode({
     nodeDriver = {
       url              = var.proxmox_node_driver_url
@@ -229,22 +229,22 @@ resource "kubectl_manifest" "proxmox_machine_config" {
   yaml_body = yamlencode(
     each.value.kind == "PveConfig"
     ? merge({
-        apiVersion = each.value.api_version
-        kind       = each.value.kind
-        metadata = {
-          name      = each.key
-          namespace = each.value.namespace
-        }
-      }, each.value.spec)
-    : {
-        apiVersion = each.value.api_version
-        kind       = each.value.kind
-        metadata = {
-          name      = each.key
-          namespace = each.value.namespace
-        }
-        spec = each.value.spec
+      apiVersion = each.value.api_version
+      kind       = each.value.kind
+      metadata = {
+        name      = each.key
+        namespace = each.value.namespace
       }
+    }, each.value.spec)
+    : {
+      apiVersion = each.value.api_version
+      kind       = each.value.kind
+      metadata = {
+        name      = each.key
+        namespace = each.value.namespace
+      }
+      spec = each.value.spec
+    }
   )
 
   depends_on = [
@@ -254,7 +254,7 @@ resource "kubectl_manifest" "proxmox_machine_config" {
 }
 
 resource "restapi_object" "proxmox_cloud_credential" {
-  path        = "/v3/cloudcredentials"
+  path         = "/v3/cloudcredentials"
   id_attribute = "id"
   data = jsonencode({
     name        = var.proxmox_cloud_credential_name
@@ -289,11 +289,11 @@ resource "restapi_object" "proxmox_cloud_credential" {
 
   lifecycle {
     precondition {
-      condition = local.proxmox_api_url != "" && local.proxmox_api_token_id != "" && local.proxmox_api_token_secret != ""
+      condition     = local.proxmox_api_url != "" && local.proxmox_api_token_id != "" && local.proxmox_api_token_secret != ""
       error_message = "Proxmox cloud credential values resolved empty from Vault. Check vault_proxmox_api_secret_path and token/url key settings."
     }
     precondition {
-      condition = local.rancher_api_url_value != "" && local.rancher_api_token_value != ""
+      condition     = local.rancher_api_url_value != "" && local.rancher_api_token_value != ""
       error_message = "Rancher API URL/token resolved empty from Vault. Check vault_rancher_api_secret_path and key settings."
     }
   }
