@@ -127,8 +127,6 @@ provider "restapi" {
 }
 
 resource "rancher2_catalog_v2" "proxmox_extension_repo" {
-  count = var.proxmox_node_driver_enabled ? 1 : 0
-
   cluster_id = "local"
   name       = var.proxmox_extension_repo_name
   url        = var.proxmox_extension_repo_url
@@ -140,8 +138,6 @@ resource "rancher2_catalog_v2" "proxmox_extension_repo" {
 }
 
 resource "rancher2_app_v2" "proxmox_node_driver_extension" {
-  count = var.proxmox_node_driver_enabled ? 1 : 0
-
   cluster_id    = "local"
   name          = var.proxmox_extension_chart_name
   namespace     = var.proxmox_extension_namespace
@@ -166,8 +162,6 @@ resource "rancher2_app_v2" "proxmox_node_driver_extension" {
 }
 
 resource "terraform_data" "wait_for_proxmox_driver_ready" {
-  count = var.proxmox_node_driver_enabled && var.proxmox_machine_configs_enabled ? 1 : 0
-
   input = {
     node_driver_name = var.proxmox_node_driver_name
     kubeconfig_hash  = sha256(local.kubeconfig_yaml)
@@ -230,7 +224,7 @@ KUBECONFIG_EOF
 }
 
 resource "kubectl_manifest" "proxmox_machine_config" {
-  for_each = var.proxmox_machine_configs_enabled ? var.proxmox_machine_configs : {}
+  for_each = var.proxmox_machine_configs
 
   yaml_body = yamlencode({
     apiVersion = try(each.value.api_version, "rke-machine-config.cattle.io/v1")
@@ -249,8 +243,6 @@ resource "kubectl_manifest" "proxmox_machine_config" {
 }
 
 resource "restapi_object" "proxmox_cloud_credential" {
-  count = var.proxmox_cloud_credential_enabled ? 1 : 0
-
   path        = "/v3/cloudcredentials"
   id_attribute = "id"
   data = jsonencode({

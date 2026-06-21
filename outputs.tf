@@ -9,8 +9,8 @@ output "fleet_namespace" {
 }
 
 output "proxmox_node_driver_id" {
-  description = "Rancher node driver ID when proxmox node driver deployment is enabled."
-  value       = var.proxmox_node_driver_enabled ? var.proxmox_node_driver_name : null
+  description = "Rancher node driver ID."
+  value       = var.proxmox_node_driver_name
 }
 
 output "proxmox_machine_config_names" {

@@ -76,12 +76,6 @@ variable "vault_proxmox_api_token_key" {
   default     = "token"
 }
 
-variable "proxmox_cloud_credential_enabled" {
-  description = "If true, creates/updates Rancher Proxmox cloud credential from Vault secret data."
-  type        = bool
-  default     = true
-}
-
 variable "proxmox_cloud_credential_name" {
   description = "Rancher cloud credential object name for Proxmox."
   type        = string
@@ -96,12 +90,6 @@ variable "proxmox_cloud_credential_description" {
 
 variable "proxmox_cloud_credential_insecure_tls" {
   description = "Whether to skip TLS verification for Proxmox API in Rancher cloud credential."
-  type        = bool
-  default     = true
-}
-
-variable "proxmox_node_driver_enabled" {
-  description = "If true, deploys/updates a Proxmox custom node driver in Rancher management."
   type        = bool
   default     = true
 }
@@ -162,12 +150,6 @@ variable "proxmox_extension_install_timeout_seconds" {
   description = "Timeout for extension chart install/upgrade."
   type        = number
   default     = 900
-}
-
-variable "proxmox_machine_configs_enabled" {
-  description = "If true, creates Proxmox machine config CRs in Rancher for downstream cluster pools."
-  type        = bool
-  default     = false
 }
 
 variable "proxmox_node_driver_ready_timeout_seconds" {
