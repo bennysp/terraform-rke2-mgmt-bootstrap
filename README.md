@@ -20,19 +20,17 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 
 ## Proxmox Node Driver Deployment
 
-- Optional Rancher node-driver deployment uses the extension flow only.
-- Set `proxmox_node_driver_enabled = true` to deploy/update the Proxmox custom node driver from management bootstrap.
+- Rancher node-driver deployment uses the extension flow only.
+- The module deploys/updates the Proxmox custom node driver from management bootstrap.
 - The module creates a Rancher App Repository and installs the upstream `pve-node-driver` extension chart.
 - Rancher API URL/token are read from Vault path `vault_rancher_api_secret_path`.
-- Optional Proxmox machine-config CR creation is supported via `kubectl_manifest`:
-	- set `proxmox_machine_configs_enabled = true`
-	- define `proxmox_machine_configs` map keyed by config object name (for example cp/worker)
-	- active readiness wait is used before machine-config creation:
-		- waits for NodeDriver conditions `Downloaded=True` and `Installed=True`
-		- waits for CRD `pveconfigs.rke-machine-config.cattle.io` (configurable via `proxmox_machine_config_crd_name`)
-	- tune wait behavior with:
-		- `proxmox_node_driver_ready_timeout_seconds` (default `900`)
-		- `proxmox_node_driver_ready_poll_interval_seconds` (default `10`)
+- Proxmox machine-config CR creation is supported via `kubectl_manifest` using `proxmox_machine_configs` (map keyed by config object name, for example cp/worker).
+- Active readiness wait is used before machine-config creation:
+	- waits for NodeDriver conditions `Downloaded=True` and `Installed=True`
+	- waits for CRD `pveconfigs.rke-machine-config.cattle.io` (configurable via `proxmox_machine_config_crd_name`)
+- Tune wait behavior with:
+	- `proxmox_node_driver_ready_timeout_seconds` (default `900`)
+	- `proxmox_node_driver_ready_poll_interval_seconds` (default `10`)
 - Downstream provisioning can then reference these machine configs by `kind`/`name` with no manual Rancher UI object creation.
 
 ## Vault Secret Expectations
