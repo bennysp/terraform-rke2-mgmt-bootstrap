@@ -25,13 +25,13 @@ variable "vault_kubeconfig_is_base64" {
 variable "vault_github_secret_path" {
   description = "Vault KV v2 path for Git credentials, e.g. secret/github/creds."
   type        = string
-  default     = "secret/github/creds"
+  default     = "secret/forgejo/rancher"
 }
 
 variable "vault_github_username_key" {
   description = "Username key in Git credentials secret."
   type        = string
-  default     = "user"
+  default     = "username"
 }
 
 variable "vault_github_password_key" {
@@ -103,7 +103,7 @@ variable "proxmox_cloud_credential_insecure_tls" {
 variable "proxmox_node_driver_enabled" {
   description = "If true, deploys/updates a Proxmox custom node driver in Rancher management."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "proxmox_node_driver_name" {
