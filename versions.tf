@@ -18,5 +18,9 @@ terraform {
       source  = "nexus.ta.domain.thedaily.tv/gavinbunney/kubectl"
       version = "~> 1.14"
     }
+    restapi = {
+      source  = "nexus.ta.domain.thedaily.tv/mastercard/restapi"
+      version = "~> 3.0"
+    }
   }
 }

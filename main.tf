@@ -149,6 +149,19 @@ provider "rancher2" {
   timeout   = "20m"
 }
 
+provider "restapi" {
+  uri                  = local.rancher_api_url_value
+  bearer_token         = local.rancher_api_token_value
+  insecure             = true
+  write_returns_object = true
+  create_returns_object = true
+  id_attribute         = "id"
+
+  headers = {
+    "Content-Type" = "application/json"
+  }
+}
+
 resource "rancher2_catalog_v2" "proxmox_extension_repo" {
   count = var.proxmox_node_driver_enabled && local.proxmox_node_driver_mode == "extension" ? 1 : 0
 
@@ -315,16 +328,17 @@ resource "kubectl_manifest" "proxmox_machine_config" {
   ]
 }
 
-resource "kubectl_manifest" "proxmox_cloud_credential" {
+resource "restapi_object" "proxmox_cloud_credential" {
   count = var.proxmox_cloud_credential_enabled ? 1 : 0
 
-  yaml_body = yamlencode({
-    apiVersion = "management.cattle.io/v3"
-    kind       = "CloudCredential"
-    metadata = {
-      name = var.proxmox_cloud_credential_name
-    }
+  path        = "/v3/cloudcredentials"
+  id_attribute = "id"
+  data = jsonencode({
+    name        = var.proxmox_cloud_credential_name
     description = var.proxmox_cloud_credential_description
+    annotations = {
+      "provisioning.cattle.io/driver" = var.proxmox_node_driver_name
+    }
     pvecredentialConfig = {
       url         = local.proxmox_api_url
       insecureTls = var.proxmox_cloud_credential_insecure_tls
@@ -332,6 +346,19 @@ resource "kubectl_manifest" "proxmox_cloud_credential" {
       tokenSecret = local.proxmox_api_token_secret
     }
   })
+
+  ignore_server_additions = true
+  ignore_changes_to = [
+    "links",
+    "actions",
+    "baseType",
+    "created",
+    "createdTS",
+    "creatorId",
+    "labels",
+    "type",
+    "uuid",
+  ]
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
@@ -341,6 +368,10 @@ resource "kubectl_manifest" "proxmox_cloud_credential" {
     precondition {
       condition = local.proxmox_api_url != "" && local.proxmox_api_token_id != "" && local.proxmox_api_token_secret != ""
       error_message = "Proxmox cloud credential values resolved empty from Vault. Check vault_proxmox_api_secret_path and token/url key settings."
+    }
+    precondition {
+      condition = local.rancher_api_url_value != "" && local.rancher_api_token_value != ""
+      error_message = "Rancher API URL/token resolved empty from Vault. Check vault_rancher_api_secret_path and key settings."
     }
   }
 }
