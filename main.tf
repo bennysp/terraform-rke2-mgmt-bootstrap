@@ -176,7 +176,8 @@ resource "terraform_data" "wait_for_proxmox_driver_ready" {
   ]
 
   provisioner "local-exec" {
-    command = <<-EOT
+    interpreter = ["/usr/bin/env", "bash", "-c"]
+    command     = <<-EOT
       set -euo pipefail
 
       KCFG_FILE=$(mktemp /tmp/proxmox-driver-kubeconfig.XXXXXX.yaml)
@@ -329,7 +330,8 @@ resource "terraform_data" "wait_for_fleet_ready" {
   ]
 
   provisioner "local-exec" {
-    command = <<-EOT
+    interpreter = ["/usr/bin/env", "bash", "-c"]
+    command     = <<-EOT
       set -euo pipefail
 
       KCFG_FILE=$(mktemp /tmp/fleet-ready-kubeconfig.XXXXXX.yaml)
