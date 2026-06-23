@@ -44,11 +44,21 @@ data "vault_generic_secret" "proxmox_api" {
   path = var.vault_proxmox_api_secret_path
 }
 
-data "http" "proxmox_node_driver_binary" {
-  url = var.proxmox_node_driver_url
+data "external" "proxmox_node_driver_checksum" {
+  program = [
+    "/usr/bin/env",
+    "bash",
+    "-lc",
+    <<-EOT
+      set -euo pipefail
+      url=$(jq -r '.url' < /dev/stdin)
+      checksum=$(curl -fsSL "$url" | sha256sum | awk '{print $1}')
+      jq -n --arg checksum "$checksum" '{"checksum":$checksum}'
+    EOT
+  ]
 
-  request_headers = {
-    Accept = "application/octet-stream"
+  query = {
+    url = var.proxmox_node_driver_url
   }
 }
 
@@ -177,7 +187,7 @@ resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   values = yamlencode({
     nodeDriver = {
       url              = var.proxmox_node_driver_url
-      checksum         = sha256(data.http.proxmox_node_driver_binary.response_body)
+      checksum         = data.external.proxmox_node_driver_checksum.result.checksum
       whitelistDomains = local.proxmox_node_driver_whitelist_domains_effective
     }
   })

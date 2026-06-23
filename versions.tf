@@ -22,9 +22,9 @@ terraform {
       source  = "nexus.ta.domain.thedaily.tv/mastercard/restapi"
       version = "~> 3.0"
     }
-    http = {
-      source  = "nexus.ta.domain.thedaily.tv/hashicorp/http"
-      version = "~> 3.4"
+    external = {
+      source  = "nexus.ta.domain.thedaily.tv/hashicorp/external"
+      version = "~> 2.3"
     }
   }
 }
