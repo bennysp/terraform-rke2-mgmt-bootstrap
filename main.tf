@@ -83,6 +83,29 @@ locals {
     ""
   ))
 
+  proxmox_node_driver_url_no_scheme = trimprefix(trimprefix(var.proxmox_node_driver_url, "https://"), "http://")
+  proxmox_node_driver_url_host_port = split("/", local.proxmox_node_driver_url_no_scheme)[0]
+  proxmox_node_driver_url_host      = split(":", local.proxmox_node_driver_url_host_port)[0]
+
+  proxmox_extension_repo_url_no_scheme = trimprefix(trimprefix(var.proxmox_extension_repo_url, "https://"), "http://")
+  proxmox_extension_repo_url_host_port = split("/", local.proxmox_extension_repo_url_no_scheme)[0]
+  proxmox_extension_repo_url_host      = split(":", local.proxmox_extension_repo_url_host_port)[0]
+
+  proxmox_node_driver_whitelist_domains_effective = distinct(compact(concat(
+    var.proxmox_node_driver_whitelist_domains,
+    [
+      local.proxmox_node_driver_url_host,
+      local.proxmox_extension_repo_url_host,
+      "github.com",
+      "githubusercontent.com",
+      "objects.githubusercontent.com",
+      "raw.githubusercontent.com",
+      "release-assets.githubusercontent.com",
+      "virthost01.domain.thedaily.tv",
+      "domain.thedaily.tv",
+    ]
+  )))
+
   enabled_bundles = {
     for name, cfg in var.bootstrap_bundles : name => cfg if try(cfg.enabled, true)
   }
@@ -146,7 +169,7 @@ resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   values = yamlencode({
     nodeDriver = {
       url              = var.proxmox_node_driver_url
-      whitelistDomains = var.proxmox_node_driver_whitelist_domains
+      whitelistDomains = local.proxmox_node_driver_whitelist_domains_effective
     }
   })
 
