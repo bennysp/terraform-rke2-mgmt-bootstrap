@@ -221,7 +221,6 @@ KUBECONFIG_EOF
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
-    terraform_data.wait_for_proxmox_driver_ready,
   ]
 }
 
@@ -278,6 +277,7 @@ resource "restapi_object" "proxmox_cloud_credential" {
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
+    terraform_data.wait_for_proxmox_driver_ready,
   ]
 
   lifecycle {
