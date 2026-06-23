@@ -311,6 +311,66 @@ resource "kubernetes_secret" "fleet_git_auth" {
   }
 }
 
+resource "terraform_data" "wait_for_fleet_ready" {
+  input = {
+    fleet_controller_namespace = var.fleet_controller_namespace
+    fleet_controller_name      = var.fleet_controller_name
+    timeout_seconds            = var.fleet_ready_timeout_seconds
+    poll_seconds               = var.fleet_ready_poll_interval_seconds
+    kubeconfig_hash            = sha256(local.kubeconfig_yaml)
+  }
+
+  triggers_replace = [
+    var.fleet_controller_namespace,
+    var.fleet_controller_name,
+    var.fleet_ready_timeout_seconds,
+    var.fleet_ready_poll_interval_seconds,
+    sha256(local.kubeconfig_yaml),
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -euo pipefail
+
+      KCFG_FILE=$(mktemp /tmp/fleet-ready-kubeconfig.XXXXXX.yaml)
+      cat > "$KCFG_FILE" <<'KUBECONFIG_EOF'
+${local.kubeconfig_yaml}
+KUBECONFIG_EOF
+
+      FLEET_NS='${var.fleet_controller_namespace}'
+      FLEET_DEPLOY='${var.fleet_controller_name}'
+      TIMEOUT_SECONDS='${var.fleet_ready_timeout_seconds}'
+      POLL_SECONDS='${var.fleet_ready_poll_interval_seconds}'
+      DEADLINE=$((SECONDS + TIMEOUT_SECONDS))
+
+      while (( SECONDS < DEADLINE )); do
+        CRD_READY=false
+        DEPLOY_READY=false
+
+        if kubectl --kubeconfig "$KCFG_FILE" get crd gitrepos.fleet.cattle.io >/dev/null 2>&1; then
+          CRD_READY=true
+        fi
+
+        if kubectl --kubeconfig "$KCFG_FILE" -n "$FLEET_NS" rollout status deploy/"$FLEET_DEPLOY" --timeout=5s >/dev/null 2>&1; then
+          DEPLOY_READY=true
+        fi
+
+        if [[ "$CRD_READY" == "true" && "$DEPLOY_READY" == "true" ]]; then
+          echo "Fleet CRDs and controller are ready."
+          exit 0
+        fi
+
+        sleep "$POLL_SECONDS"
+      done
+
+      echo "Timed out waiting for Fleet readiness."
+      kubectl --kubeconfig "$KCFG_FILE" get crd gitrepos.fleet.cattle.io -o yaml || true
+      kubectl --kubeconfig "$KCFG_FILE" -n "$FLEET_NS" get deploy "$FLEET_DEPLOY" -o yaml || true
+      exit 1
+    EOT
+  }
+}
+
 resource "kubectl_manifest" "fleet_gitrepo" {
   for_each = local.enabled_bundles
 
@@ -325,4 +385,9 @@ resource "kubectl_manifest" "fleet_gitrepo" {
     insecure_skip_tls_verify = var.fleet_insecure_skip_tls_verify
     targets                  = var.bundle_targets
   })
+
+  depends_on = [
+    kubernetes_secret.fleet_git_auth,
+    terraform_data.wait_for_fleet_ready,
+  ]
 }

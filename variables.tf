@@ -211,6 +211,30 @@ variable "fleet_insecure_skip_tls_verify" {
   default     = true
 }
 
+variable "fleet_controller_namespace" {
+  description = "Namespace where Fleet controller deployment runs."
+  type        = string
+  default     = "cattle-fleet-system"
+}
+
+variable "fleet_controller_name" {
+  description = "Fleet controller deployment name to wait for before creating GitRepo resources."
+  type        = string
+  default     = "fleet-controller"
+}
+
+variable "fleet_ready_timeout_seconds" {
+  description = "Maximum seconds to wait for Fleet CRDs and controller readiness."
+  type        = number
+  default     = 900
+}
+
+variable "fleet_ready_poll_interval_seconds" {
+  description = "Polling interval in seconds while waiting for Fleet readiness."
+  type        = number
+  default     = 10
+}
+
 variable "bundle_targets" {
   description = "Fleet targets applied to each GitRepo bundle."
   type = list(object({
