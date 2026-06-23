@@ -44,6 +44,14 @@ data "vault_generic_secret" "proxmox_api" {
   path = var.vault_proxmox_api_secret_path
 }
 
+data "http" "proxmox_node_driver_binary" {
+  url = var.proxmox_node_driver_url
+
+  request_headers = {
+    Accept = "application/octet-stream"
+  }
+}
+
 locals {
   kubeconfig_raw = try(tostring(data.vault_kv_secret_v2.kubeconfig.data[var.vault_kubeconfig_secret_key]), "")
   kubeconfig_yaml = trimspace(local.kubeconfig_raw) != "" ? (
@@ -169,6 +177,7 @@ resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   values = yamlencode({
     nodeDriver = {
       url              = var.proxmox_node_driver_url
+      checksum         = sha256(data.http.proxmox_node_driver_binary.response_body)
       whitelistDomains = local.proxmox_node_driver_whitelist_domains_effective
     }
   })
