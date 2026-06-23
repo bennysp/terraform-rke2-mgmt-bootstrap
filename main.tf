@@ -226,26 +226,17 @@ KUBECONFIG_EOF
 resource "kubectl_manifest" "proxmox_machine_config" {
   for_each = var.proxmox_machine_configs
 
-  yaml_body = yamlencode(
-    each.value.kind == "PveConfig"
-    ? merge({
-      apiVersion = each.value.api_version
-      kind       = each.value.kind
-      metadata = {
-        name      = each.key
-        namespace = each.value.namespace
-      }
-    }, each.value.spec)
-    : {
-      apiVersion = each.value.api_version
-      kind       = each.value.kind
-      metadata = {
-        name      = each.key
-        namespace = each.value.namespace
-      }
-      spec = each.value.spec
+  # Keep a consistent object type for all machine config kinds.
+  # PveConfig values can arrive either as a flat map or nested under spec.spec.
+  yaml_body = yamlencode({
+    apiVersion = each.value.api_version
+    kind       = each.value.kind
+    metadata = {
+      name      = each.key
+      namespace = each.value.namespace
     }
-  )
+    spec = try(each.value.spec.spec, each.value.spec)
+  })
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
