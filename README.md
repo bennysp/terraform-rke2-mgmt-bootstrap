@@ -24,6 +24,7 @@ Terraform module for Rancher management bootstrap via Fleet GitRepo resources.
 - The module deploys/updates the Proxmox custom node driver from management bootstrap.
 - The module creates a Rancher App Repository and installs the upstream `pve-node-driver` extension chart.
 - Effective `whitelistDomains` is hardened to always include driver/repository URL hosts and common GitHub download domains, even when custom whitelist inputs are provided.
+- Because upstream chart template does not currently render `spec.whitelistDomains`, bootstrap explicitly patches whitelist domains on the `NodeDriver` after chart install/upgrade.
 - `nodeDriver.checksum` is computed dynamically from `proxmox_node_driver_url` during Terraform plan/apply using `curl | sha256sum` (via Terraform external data source) to avoid upstream chart checksum drift causing Rancher `hash does not match` errors.
 - Rancher API URL/token are read from Vault path `vault_rancher_api_secret_path`.
 - Proxmox machine-config CR creation is supported via `kubectl_manifest` using `proxmox_machine_configs` (map keyed by config object name, for example cp/worker).

@@ -203,6 +203,58 @@ resource "rancher2_app_v2" "proxmox_node_driver_extension" {
   ]
 }
 
+resource "terraform_data" "ensure_proxmox_driver_whitelist" {
+  input = {
+    node_driver_name  = var.proxmox_node_driver_name
+    whitelist_domains = local.proxmox_node_driver_whitelist_domains_effective
+    kubeconfig_hash   = sha256(local.kubeconfig_yaml)
+    timeout_seconds   = var.proxmox_node_driver_ready_timeout_seconds
+    poll_seconds      = var.proxmox_node_driver_ready_poll_interval_seconds
+  }
+
+  triggers_replace = [
+    var.proxmox_node_driver_name,
+    jsonencode(local.proxmox_node_driver_whitelist_domains_effective),
+    sha256(local.kubeconfig_yaml),
+  ]
+
+  provisioner "local-exec" {
+    interpreter = ["/usr/bin/env", "bash", "-c"]
+    command     = <<-EOT
+      set -euo pipefail
+
+      KCFG_FILE=$(mktemp /tmp/proxmox-driver-kubeconfig.XXXXXX.yaml)
+      cat > "$KCFG_FILE" <<'KUBECONFIG_EOF'
+${local.kubeconfig_yaml}
+KUBECONFIG_EOF
+
+      DRIVER_NAME='${var.proxmox_node_driver_name}'
+      TIMEOUT_SECONDS='${var.proxmox_node_driver_ready_timeout_seconds}'
+      POLL_SECONDS='${var.proxmox_node_driver_ready_poll_interval_seconds}'
+      DEADLINE=$((SECONDS + TIMEOUT_SECONDS))
+
+      WHITELIST_JSON='${jsonencode(local.proxmox_node_driver_whitelist_domains_effective)}'
+
+      while (( SECONDS < DEADLINE )); do
+        if kubectl --kubeconfig "$KCFG_FILE" get nodedrivers.management.cattle.io "$DRIVER_NAME" >/dev/null 2>&1; then
+          kubectl --kubeconfig "$KCFG_FILE" patch nodedrivers.management.cattle.io "$DRIVER_NAME" --type=merge -p "{\"spec\":{\"whitelistDomains\":$WHITELIST_JSON}}"
+          echo "Patched whitelistDomains on NodeDriver ${var.proxmox_node_driver_name}."
+          exit 0
+        fi
+
+        sleep "$POLL_SECONDS"
+      done
+
+      echo "Timed out waiting to patch whitelistDomains on NodeDriver ${var.proxmox_node_driver_name}."
+      exit 1
+    EOT
+  }
+
+  depends_on = [
+    rancher2_app_v2.proxmox_node_driver_extension,
+  ]
+}
+
 resource "terraform_data" "wait_for_proxmox_driver_ready" {
   input = {
     node_driver_name = var.proxmox_node_driver_name
@@ -263,6 +315,7 @@ KUBECONFIG_EOF
 
   depends_on = [
     rancher2_app_v2.proxmox_node_driver_extension,
+    terraform_data.ensure_proxmox_driver_whitelist,
   ]
 }
 
